@@ -3,6 +3,8 @@ package com.example.mypet;
 import androidx.annotation.LongDef;
 import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
@@ -52,8 +54,8 @@ public class MainActivity extends AppCompatActivity {
     //List<String> pet_name_list = new ArrayList<>();
     List<Pet> pet_list;
 
-    long openTime = 0;
-    long closeTime = 0;
+    long openTime;
+    long closeTime;
 
     // 宠物收回标志
     boolean back_flag = false;
@@ -207,44 +209,116 @@ public class MainActivity extends AppCompatActivity {
             petAgeView.setText(showPetAge(petAge));
         }
 
+//        // 释放宠物
+//        bn_showPet.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//
+//                if (first_open_flag == 0) {
+//                    // 第一只宠物释放时间
+//                    openTime = System.currentTimeMillis();
+//                }
+//
+//                // 第二次起释放不同宠物，收回标志改变
+//                if (back_flag) {
+//                    openTime = System.currentTimeMillis();
+//                    back_flag = false;
+//                } else {
+//                    if (first_open_flag > 0 && !last_name.equals(showPetName.getText().toString())){
+//                        closeTime = System.currentTimeMillis();
+//                        petAgeSeconds += (closeTime - openTime) / 1000;
+//                        long new_age;
+//                        new_age = getPetAge(last_name) + petAgeSeconds;
+//                        // 更新宠物年龄到数据库
+//                        if (petAgeSeconds > 0) {
+//                            updatePetAge(last_name, new_age);
+//                        }
+//                        last_name = showPetName.getText().toString();
+//                        petAgeSeconds = 0;
+//                        back_flag = true;
+//                    }
+//                }
+//                first_open_flag++;
+//
+//                // 传宠物参数到Service
+//                Intent intent = new Intent(MainActivity.this, PetWindowService.class);
+//                intent.putExtra("pet_name", showPetName.getText().toString())
+//                        .putExtra("pet_mode", showPetMode.getText().toString())
+//                        .putExtra("pet_age", String.valueOf(getPetAge(showPetName.getText().toString())));
+//                startService(intent);
+//                Log.d(TAG, "onClick: 成功释放");
+//            }
+//        });
+//
+//        // 收回宠物
+//        bn_backPet.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                // 收回时间
+//                if (!back_flag) {
+//                    closeTime = System.currentTimeMillis();
+//                    petAgeSeconds += (closeTime - openTime) / 1000;
+//                    long new_age;
+//                    new_age = getPetAge(showPetName.getText().toString()) + petAgeSeconds;
+//                    // 更新宠物年龄到数据库
+//                    updatePetAge(showPetName.getText().toString(), new_age);
+//                    Log.d(TAG, "onClick: db_name = " + showPetName.getText().toString());
+//                    Log.d(TAG, "onClick: time = " + petAgeSeconds);
+//                    Log.d(TAG, "onClick: all_time = " + new_age);
+//
+//                    // 更新年龄显示
+//                    petAgeView.setText(showPetAge(getPetAge(showPetName.getText().toString())));
+//                    petAgeSeconds = 0;
+//                    back_flag = true;
+//
+//                    // **刷新图片**
+//                    if (showPetName.getText().toString().isEmpty()) {
+//                        // 如果没有宠物名字，则显示默认图片
+//                        showPetImg.setImageResource(R.drawable.sample_pet); // 设置占位图片
+//                    } else {
+//                        // 根据宠物类型和年龄更新图片
+//                        String petMode = getPetMode(showPetName.getText().toString()); // 获取宠物类型
+//                        int updatedPetImage = changePet(petMode); // 根据类型和年龄获取图片资源
+//                        showPetImg.setImageResource(updatedPetImage); // 更新 ImageView 的图片资源
+//                    }
+//                }
+//                Log.d(TAG, "onClick: close time=" + closeTime);
+//
+//                // 停止宠物窗口服务
+//                Intent intent = new Intent(MainActivity.this, PetWindowService.class);
+//                stopService(intent);
+//            }
+//        });
+//
+//        bn_delete.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                removePet(tmp_name);
+//            }
+//        });
+
         // 释放宠物
         bn_showPet.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
-                if (first_open_flag == 0) {
-                    // 第一只宠物释放时间
+                // 确保初始化 openTime
+                if (first_open_flag == 0 || back_flag) {
                     openTime = System.currentTimeMillis();
+                    back_flag = false;  // 重置收回标志
+                    first_open_flag++; // 标志释放次数
                 }
 
-                // 第二次起释放不同宠物，收回标志改变
-                if (back_flag) {
-                    openTime = System.currentTimeMillis();
-                    back_flag = false;
-                } else {
-                    if (first_open_flag > 0 && !last_name.equals(showPetName.getText().toString())){
-                        closeTime = System.currentTimeMillis();
-                        petAgeSeconds += (closeTime - openTime) / 1000;
-                        long new_age;
-                        new_age = getPetAge(last_name) + petAgeSeconds;
-                        // 更新宠物年龄到数据库
-                        if (petAgeSeconds > 0) {
-                            updatePetAge(last_name, new_age);
-                        }
-                        last_name = showPetName.getText().toString();
-                        petAgeSeconds = 0;
-                        back_flag = true;
-                    }
-                }
-                first_open_flag++;
+                Log.d(TAG, "onClick: 释放宠物 - 名称：" + showPetName.getText().toString());
+                Log.d(TAG, "onClick: openTime = " + openTime);
 
-                // 传宠物参数到Service
+                // 传递宠物数据到服务
                 Intent intent = new Intent(MainActivity.this, PetWindowService.class);
                 intent.putExtra("pet_name", showPetName.getText().toString())
                         .putExtra("pet_mode", showPetMode.getText().toString())
                         .putExtra("pet_age", String.valueOf(getPetAge(showPetName.getText().toString())));
+                intent.putExtra("openTime", openTime);
                 startService(intent);
-                Log.d(TAG, "onClick: 成功释放");
+                Log.d(TAG, "onClick: 宠物释放成功！");
             }
         });
 
@@ -252,46 +326,51 @@ public class MainActivity extends AppCompatActivity {
         bn_backPet.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 收回时间
-                if (!back_flag) {
-                    closeTime = System.currentTimeMillis();
+                if (!back_flag) { // 如果宠物未被收回
+
+                    // 获取保存的 openTime
+                    SharedPreferences sharedPreferences = getSharedPreferences("PetWindowServicePrefs", MODE_PRIVATE);
+                    long openTime = sharedPreferences.getLong("openTime", -1);
+
+                    closeTime = System.currentTimeMillis(); // 获取关闭时间戳
+
+                    // 计算活跃时间
                     petAgeSeconds += (closeTime - openTime) / 1000;
-                    long new_age;
-                    new_age = getPetAge(showPetName.getText().toString()) + petAgeSeconds;
+                    long newAge = getPetAge(showPetName.getText().toString()) + petAgeSeconds;
+
                     // 更新宠物年龄到数据库
-                    updatePetAge(showPetName.getText().toString(), new_age);
-                    Log.d(TAG, "onClick: db_name = " + showPetName.getText().toString());
-                    Log.d(TAG, "onClick: time = " + petAgeSeconds);
-                    Log.d(TAG, "onClick: all_time = " + new_age);
+                    updatePetAge(showPetName.getText().toString(), newAge);
 
-                    // 更新年龄显示
-                    petAgeView.setText(showPetAge(getPetAge(showPetName.getText().toString())));
+                    Log.d(TAG, "onClick: 收回宠物 - 名称：" + showPetName.getText().toString());
+                    Log.d(TAG, "onClick: openTime = " + openTime);
+
+                    Log.d(TAG, "onClick: 活跃时间（秒）= " + petAgeSeconds);
+                    Log.d(TAG, "onClick: 总年龄（秒）= " + newAge);
+                    Log.d(TAG, "onClick: closeTime = " + closeTime);
+
+                    // 重置变量
                     petAgeSeconds = 0;
-                    back_flag = true;
+                    back_flag = true; // 设置宠物收回标志
 
-                    // **刷新图片**
-                    if (showPetName.getText().toString().isEmpty()) {
-                        // 如果没有宠物名字，则显示默认图片
-                        showPetImg.setImageResource(R.drawable.sample_pet); // 设置占位图片
-                    } else {
-                        // 根据宠物类型和年龄更新图片
-                        String petMode = getPetMode(showPetName.getText().toString()); // 获取宠物类型
-                        int updatedPetImage = changePet(petMode); // 根据类型和年龄获取图片资源
-                        showPetImg.setImageResource(updatedPetImage); // 更新 ImageView 的图片资源
-                    }
+                    // 更新 UI
+                    petAgeView.setText(showPetAge(newAge));
                 }
-                Log.d(TAG, "onClick: close time=" + closeTime);
 
-                // 停止宠物窗口服务
+                // 停止宠物服务
                 Intent intent = new Intent(MainActivity.this, PetWindowService.class);
                 stopService(intent);
+                Log.d(TAG, "onClick: 宠物服务已停止");
             }
         });
 
+        // 删除宠物
         bn_delete.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                removePet(tmp_name);
+                if (tmp_name != null && !tmp_name.isEmpty()) {
+                    removePet(tmp_name);
+                    Log.d(TAG, "onClick: 宠物删除 - 名称：" + tmp_name);
+                }
             }
         });
     }
@@ -356,33 +435,62 @@ public class MainActivity extends AppCompatActivity {
         return pet_img;
     }
 
-    // 将宠物年龄由秒数转化为年月日时分秒
+//    // 将宠物年龄由秒数转化为年月日时分秒
+//    private String showPetAge(long petAgeSeconds) {
+//        String petAgeStr = "";
+//
+//        if (petAgeSeconds > 31536000) {
+//            petAgeStr += (petAgeSeconds / 31536000) + "年";
+//            petAgeSeconds = petAgeSeconds % 31536000;
+//        }
+//        if(petAgeSeconds > 2626560) {
+//            petAgeStr += (petAgeSeconds / 2626560) + "月";
+//            petAgeSeconds = petAgeSeconds % 2626560;
+//        }
+//        if(petAgeSeconds > 2626560) {
+//            petAgeStr += (petAgeSeconds / 86400) + "天";
+//            petAgeSeconds = petAgeSeconds % 86400;
+//        }
+//        if(petAgeSeconds > 3600) {
+//            petAgeStr += (petAgeSeconds / 3600) + "小时";
+//            petAgeSeconds = petAgeSeconds % 3600;
+//        }
+//        if(petAgeSeconds > 60) {
+//            petAgeStr += (petAgeSeconds / 60) + "分钟";
+//            petAgeSeconds = petAgeSeconds % 60;
+//        }
+//        petAgeStr += petAgeSeconds + "秒";
+//
+//        return petAgeStr;
+//    }
+
+    // 获取当前宠物年龄（格式化输出）
     private String showPetAge(long petAgeSeconds) {
-        String petAgeStr = "";
+        StringBuilder petAgeStr = new StringBuilder();
 
-        if (petAgeSeconds > 31536000) {
-            petAgeStr += (petAgeSeconds / 31536000) + "年";
-            petAgeSeconds = petAgeSeconds % 31536000;
+        if (petAgeSeconds > 31536000) { // 年
+            petAgeStr.append(petAgeSeconds / 31536000).append("年");
+            petAgeSeconds %= 31536000;
         }
-        if(petAgeSeconds > 2626560) {
-            petAgeStr += (petAgeSeconds / 2626560) + "月";
-            petAgeSeconds = petAgeSeconds % 2626560;
+        if (petAgeSeconds > 2626560) { // 月
+            petAgeStr.append(petAgeSeconds / 2626560).append("月");
+            petAgeSeconds %= 2626560;
         }
-        if(petAgeSeconds > 2626560) {
-            petAgeStr += (petAgeSeconds / 86400) + "天";
-            petAgeSeconds = petAgeSeconds % 86400;
+        if (petAgeSeconds > 86400) { // 天
+            petAgeStr.append(petAgeSeconds / 86400).append("天");
+            petAgeSeconds %= 86400;
         }
-        if(petAgeSeconds > 3600) {
-            petAgeStr += (petAgeSeconds / 3600) + "小时";
-            petAgeSeconds = petAgeSeconds % 3600;
+        if (petAgeSeconds > 3600) { // 小时
+            petAgeStr.append(petAgeSeconds / 3600).append("小时");
+            petAgeSeconds %= 3600;
         }
-        if(petAgeSeconds > 60) {
-            petAgeStr += (petAgeSeconds / 60) + "分钟";
-            petAgeSeconds = petAgeSeconds % 60;
+        if (petAgeSeconds > 60) { // 分钟
+            petAgeStr.append(petAgeSeconds / 60).append("分钟");
+            petAgeSeconds %= 60;
         }
-        petAgeStr += petAgeSeconds + "秒";
+        petAgeStr.append(petAgeSeconds).append("秒");
 
-        return petAgeStr;
+        return petAgeStr.toString();
     }
 
     // 创建一只宠物

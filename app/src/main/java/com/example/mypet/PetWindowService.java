@@ -3,6 +3,7 @@ package com.example.mypet;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.IBinder;
@@ -22,6 +23,7 @@ import java.util.Map;
 
 public class PetWindowService extends Service {
 
+    private long openTime;
     // 打开APP主界面
     private ImageView imgHome;
     // 打开淘宝
@@ -312,6 +314,16 @@ public class PetWindowService extends Service {
         // 设置宠物名字、形态
         petNameView.setText(pet_name);
         imageView.setImageResource(changePet(pet_mode, pet_age));
+
+        // 获取传递的 openTime 数据
+        long openTime = intent.getLongExtra("openTime", -1);  // 默认值为 -1
+        Log.d(TAG, "onClick: openTime = " + openTime);
+
+        // 将 openTime 存储到 SharedPreferences 中
+        SharedPreferences sharedPreferences = getSharedPreferences("PetWindowServicePrefs", Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putLong("openTime", openTime);
+        editor.apply();
 
         return super.onStartCommand(intent, flags, startId);
     }
