@@ -354,6 +354,17 @@ public class MainActivity extends AppCompatActivity {
 
                     // 更新 UI
                     petAgeView.setText(showPetAge(newAge));
+
+                    //刷新图片
+                    if (showPetName.getText().toString().isEmpty()) {
+                        // 如果没有宠物名字，则显示默认图片
+                        showPetImg.setImageResource(R.drawable.sample_pet); // 设置占位图片
+                    } else {
+                        // 根据宠物类型和年龄更新图片
+                        String petMode = getPetMode(showPetName.getText().toString()); // 获取宠物类型
+                        int updatedPetImage = changePet(petMode); // 根据类型和年龄获取图片资源
+                        showPetImg.setImageResource(updatedPetImage); // 更新 ImageView 的图片资源
+                    }
                 }
 
                 // 停止宠物服务
